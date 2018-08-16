@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import matplotlib.pyplot as plt
-import sklearn.datasets
+#import sklearn.datasets
 import scipy.spatial
 
 def predict(X,Y, sigma, alpha, iterations):
