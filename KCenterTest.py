@@ -10,6 +10,22 @@ import time
 import graph_tool as gt
 from graph_tool import flow
 
+def compute_k_center(dists, k):
+    center = [np.random.randint(0,dists.shape[0])]
+    #dists = dists[~np.eye(dists.shape[0],dtype=bool)].reshape(dists.shape[0],-1) #remove zero diagonal
+    #np.fill_diagonal(dists, upper_bound)
+    for i in range(1,k):
+        mask = np.ones(dists.shape[0], dtype=bool)
+        mask[center] = False
+        if len(center) > 1:
+            distsToCenters = dists[:,center]
+            tempidx = np.argmax(np.min(distsToCenters, axis=1))
+        else:
+            tempidx = np.argmax(dists[center[0],mask])
+        center.append(tempidx) #+ sum(j <= tempidx + 1 for j in center))
+
+    return center
+
 
 
 def mincut_strategy(W, L):
@@ -77,7 +93,7 @@ def faster_min_cut_strategy(W, L):
     print(time.time() - cut_time)
     return prediction
 
-dataset = 5
+dataset = 4
 
 X = np.genfromtxt('res/benchmark/SSL,set='+str(dataset)+',X.tab')
 y = 0.5*(np.genfromtxt('res/benchmark/SSL,set='+str(dataset)+',y.tab')+1) #1 --> 1, -1 --> 0
@@ -93,7 +109,7 @@ np.fill_diagonal(W, 0)
 #W2[W2 <= 0.1] = 0
 
 g = nx.from_numpy_matrix(W)
-upper_bound = 2 * np.sum(W)
+upper_bound = 200 * np.sum(W)
 g.add_node('s')
 g.add_node('t')
 
@@ -116,8 +132,11 @@ eprops = [weight]
 g2.add_edge_list(edges, eprops=eprops)
 
 
-for i in range(10):
-    positions = [int(idx) for idx in list(np.genfromtxt('res/benchmark/SSL,set='+str(dataset)+',splits,labeled=100.tab')[i] - 1)]
+for i in range(11):
+    if i > 0:
+        positions = [int(idx) for idx in list(np.genfromtxt('res/benchmark/SSL,set='+str(dataset)+',splits,labeled=10.tab')[i-1] - 1)]
+    else:
+        positions = compute_k_center(dists, 100)
     L = np.zeros((X.shape[0], 2))
     L[positions, 0] = 1 - y[positions]
     L[positions, 1] = y[positions]
