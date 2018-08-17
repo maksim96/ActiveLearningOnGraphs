@@ -1,11 +1,5 @@
-# coding: utf-8
-
-# In[1]:
-
-
 import numpy as np
 import matplotlib.pyplot as plt
-import graph_tool
 # from sympy.core.basic import preorder_traversal
 
 import scipy.spatial
@@ -15,18 +9,7 @@ import graph_tool as gt
 from graph_tool import flow
 from graph_tool.all import graph_draw
 
-class VisitorExample(gt.search.BFSVisitor):
-
-    reachable_vertices = []
-
-    first_time = True #we don't want to add the root
-
-    def discover_vertex(self, u):
-        if self.first_time:
-            self.first_time = False
-        else:
-            self.reachable_vertices.append(g2.vertex_index[u])
-
+import MinCut
 
 def compute_k_center(dists, k):
     center = [np.random.randint(0, dists.shape[0])]
@@ -62,7 +45,6 @@ def mincut_strategy(W, L):
     print(mid - start)
 
     cut_value, (zero_class, positive_class) = nx.minimum_cut(g, 's', 't', capacity='weight')
-    print(zero_class)
     print("--> " + str(cut_value))
     cut_time = time.time()
     print(cut_time - mid)
@@ -76,6 +58,7 @@ def mincut_strategy(W, L):
             prediction[i] = 1
     print(time.time() - cut_time)
     return prediction
+
 
 
 def faster_min_cut_strategy(W, L):
@@ -105,24 +88,14 @@ def faster_min_cut_strategy(W, L):
     #almost_full = np.greater(res.a, weight.a - eps)
     #res.a[almost_full] = weight.a[almost_full]
 
-    pos = g2.new_vertex_property("vector<double>")
-    pos.set_2d_array(np.transpose(np.vstack((X, np.array([-3,0]), np.array([8,0])))))
+    #drawing
+    #pos = g2.new_vertex_property("vector<double>")
+    #pos.set_2d_array(np.transpose(np.vstack((X, np.array([-3,0]), np.array([8,0])))))
+    #graph_draw(g2, pos=pos, edge_pen_width=gt.draw.prop_to_size(res), output="output.pdf")
 
-    graph_draw(g2, pos=pos, edge_pen_width=gt.draw.prop_to_size(res), output="output.pdf")
+    #part = flow.min_st_cut(g2, s, weight, res) #part[i] == true <=> vertex i is in the partition of the source s
 
-    part = flow.min_st_cut(g2, s, weight, res) #part[i] == true <=> vertex i is in the partition of the source s
-
-    nonzero_res = g2.new_edge_property("bool")
-    nonzero_res.a = res.a > 0
-
-    g2.set_edge_filter(nonzero_res)
-
-
-    visitor = VisitorExample()
-
-    gt.search.bfs_search(g2, s, visitor)
-
-    print(visitor.reachable_vertices)
+    part = MinCut.own_min_cut(g2, s, weight, res)
 
     max_flow = sum((weight[e] - res[e]) for e in g2.vertex(t).in_edges())
     print("-->:" + str(max_flow))
@@ -130,15 +103,8 @@ def faster_min_cut_strategy(W, L):
     cut_time = time.time()
     print(cut_time - mid)
 
-    print(part.a)
-
     prediction = np.ones(W.shape[0])
-    '''for i in range(W.shape[0]):
-        if part[i]:
-            prediction[i] = 0
-        else:
-            prediction[i] = 1'''
-    prediction[visitor.reachable_vertices] = 0
+    prediction[part] = 0
     print(time.time() - cut_time)
     return prediction
 
@@ -224,7 +190,6 @@ g2.add_edge_list(edges, eprops=eprops)
 
 
 positions = compute_k_center(dists, 20)
-print(X[positions, :])
 plt.scatter(X[positions,0], X[positions,1], alpha=0.5, s=20, c='g')
 plt.show()
 L = np.zeros((X.shape[0], 2))
