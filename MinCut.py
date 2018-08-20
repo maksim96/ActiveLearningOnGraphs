@@ -13,6 +13,9 @@ class VisitorExample(BFSVisitor):
 
 
     def discover_vertex(self, u):
+        #although this is python code all the time (instead of c++) it doesn't matter at all
+        #as the actual flow computation takes much more time
+        #==> no need to optimize this here
         if self.first_time:
             self.first_time = False
         else:

@@ -10,7 +10,7 @@ import networkx as nx
 import time
 import graph_tool as gt
 from graph_tool import flow
-
+from itertools import combinations
 
 def compute_k_center(dists, k, first_vertex):
     center = [first_vertex]
@@ -28,7 +28,7 @@ def compute_k_center(dists, k, first_vertex):
 
     return center
 
-def mincut_strategy(W, L):
+def mincut_strategy(g,upper_bound,W, L):
     start = time.time()
     for i in range(W.shape[0]):
         if L[i][0] == 1:
@@ -59,7 +59,7 @@ def mincut_strategy(W, L):
     return prediction
 
 
-def faster_min_cut_strategy(W, L):
+def faster_min_cut_strategy(g2,s,t,upper_bound,weight,W, L):
     start = time.time()
 
     g2.clear_vertex(s)
@@ -70,28 +70,30 @@ def faster_min_cut_strategy(W, L):
 
     sourceEdges = np.transpose(np.vstack((s*np.ones(zeroExampleCount), L[:,0].nonzero()[0], upper_bound * np.ones(zeroExampleCount))))
     sinkEdges = np.transpose(np.vstack((L[:,1].nonzero()[0], t * np.ones(positiveExampleCount), upper_bound * np.ones(positiveExampleCount))))
-    g2.add_edge_list(sourceEdges, eprops=eprops)
-    g2.add_edge_list(sinkEdges, eprops=eprops)
+    g2.add_edge_list(sourceEdges, eprops=[weight])
+    g2.add_edge_list(sinkEdges, eprops=[weight])
 
     mid = time.time()
-    print(mid - start)
+    #print(mid - start)
+    start = time.time()
+
     res = flow.push_relabel_max_flow(g2, s, t, weight)
-    max_flow = sum((weight[e] - res[e]) for e in g2.vertex(t).in_edges())
-    print("-->:" + str(max_flow))
+    #max_flow = sum((weight[e] - res[e]) for e in g2.vertex(t).in_edges())
+    #print("-->:" + str(max_flow))
 
     part = MinCut.own_min_cut(g2, s, weight, res)
 
-
-
     cut_time = time.time()
-    print(cut_time - mid)
+    #print(cut_time - mid)
 
     prediction = np.ones(W.shape[0])
     prediction[part] = 0
-    print(time.time() - cut_time)
+    #print(time.time() - cut_time)
     return prediction
 
-dataset = 2
+
+'''
+dataset = 4
 
 X = np.genfromtxt('res/benchmark/SSL,set='+str(dataset)+',X.tab')
 #standardize
@@ -133,14 +135,18 @@ g2.add_edge_list(edges, eprops=eprops)
 
 first_vertex = np.random.randint(0, dists.shape[0])
 
-for i in range(1,21):
+best_iterative = 1000
+best_cut = 1000
+
+for positions in combinations((range(X.shape[0])), 2):
     #if i > 0:
      #   positions = [int(idx) for idx in list(np.genfromtxt('res/benchmark/SSL,set='+str(dataset)+',splits,labeled=100.tab')[i-1] - 1)]
     #else:
+    if positions[1] % 50 == 0:
+        print(positions)
+    positions = list(positions)
 
-
-
-    positions = compute_k_center(dists, i*20,first_vertex)
+    #positions = compute_k_center(dists, i*20,first_vertex)
     L = np.zeros((X.shape[0], 2))
     L[positions, 0] = 1 - y[positions]
     L[positions, 1] = y[positions]
@@ -149,12 +155,21 @@ for i in range(1,21):
     predictionIterative = LocalAndGlobalTest.predict(X,L,sigma,0.5,200)
     #prediction_min_cut = mincut_strategy(W, L)
     prediction_faster_min_cut = faster_min_cut_strategy(W, L)
-    prediction_random = np.random.randint(2, size=prediction_faster_min_cut.shape)
+    #prediction_random = np.random.randint(2, size=prediction_faster_min_cut.shape)
 
+    err_iterative = np.dot(predictionIterative-y,predictionIterative-y)
+    if err_iterative < best_iterative:
+        best_iterative = err_iterative
 
-    print(np.dot(predictionIterative-y,predictionIterative-y))
+    err_cut = np.dot(prediction_faster_min_cut - y, prediction_faster_min_cut - y)
+    if err_cut < best_cut:
+        best_iterative = err_cut
+
+    #print(err_iterative)
     #print(np.dot(prediction_min_cut - y, prediction_min_cut - y))
-    print(np.dot(prediction_faster_min_cut - y, prediction_faster_min_cut - y))
-    print(np.dot(prediction_random-y,prediction_random-y))
-    print("==================================================")
-    print(str((i+1)*20)+".")
+    #print(err_cut)
+    #print(np.dot(prediction_random-y,prediction_random-y))
+    #print("==================================================")
+
+
+print((best_iterative, best_cut))'''
