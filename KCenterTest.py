@@ -59,19 +59,41 @@ def mincut_strategy(g,upper_bound,W, L):
     return prediction
 
 
-def faster_min_cut_strategy(g2,s,t,upper_bound,weight,W, L):
+def faster_min_cut_strategy(g2,s,t,upper_bound,weight,W, L, previous_L, visitor):
     start = time.time()
 
-    g2.clear_vertex(s)
-    g2.clear_vertex(t)
+    #instead of deleting edges here and adding some others later again,
+    #adding all edges (s,x) (x,t) with infinite weight first and then just adapt the weights, instead of changing the edge vector all the time
+    #no reindex, refitting, etc. needed anymore.
+    #g2.clear_vertex(s)
+    #g2.clear_vertex(t)
 
-    zeroExampleCount = np.sum(L[:,0])
-    positiveExampleCount = np.sum(L[:,1])
+    #zeroExampleCount = np.sum(L[:,0])
+    #positiveExampleCount = np.sum(L[:,1])
 
-    sourceEdges = np.transpose(np.vstack((s*np.ones(zeroExampleCount), L[:,0].nonzero()[0], upper_bound * np.ones(zeroExampleCount))))
-    sinkEdges = np.transpose(np.vstack((L[:,1].nonzero()[0], t * np.ones(positiveExampleCount), upper_bound * np.ones(positiveExampleCount))))
-    g2.add_edge_list(sourceEdges, eprops=[weight])
-    g2.add_edge_list(sinkEdges, eprops=[weight])
+    #g2.reindex_edges()
+
+    #sourceEdges = np.transpose(np.vstack((s*np.ones(zeroExampleCount), L[:,0].nonzero()[0], upper_bound * np.ones(zeroExampleCount))))
+    #sinkEdges = np.transpose(np.vstack((L[:,1].nonzero()[0], t * np.ones(positiveExampleCount), upper_bound * np.ones(positiveExampleCount))))
+    #g2.add_edge_list(sourceEdges, eprops=[weight])
+    #g2.add_edge_list(sinkEdges, eprops=[weight])
+
+    #print((g2.num_edges(), g2.edge_index_range))
+
+    if previous_L is not None:
+        for v in previous_L[:,0].nonzero()[0]:
+            e = g2.edge(s,v)
+            weight[e] = 0
+        for v in previous_L[:, 1].nonzero()[0]:
+            e = g2.edge(v,t)
+            weight[e] = 0
+
+    for v in L[:, 0].nonzero()[0]:
+        e = g2.edge(s, v)
+        weight[e] = upper_bound
+    for v in L[:, 1].nonzero()[0]:
+        e = g2.edge(v, t)
+        weight[e] = upper_bound
 
     mid = time.time()
     #print(mid - start)
@@ -81,7 +103,7 @@ def faster_min_cut_strategy(g2,s,t,upper_bound,weight,W, L):
     #max_flow = sum((weight[e] - res[e]) for e in g2.vertex(t).in_edges())
     #print("-->:" + str(max_flow))
 
-    part = MinCut.own_min_cut(g2, s, weight, res)
+    part = MinCut.own_min_cut(visitor, s, weight, res)
 
     cut_time = time.time()
     #print(cut_time - mid)

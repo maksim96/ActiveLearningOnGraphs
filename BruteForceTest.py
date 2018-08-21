@@ -48,20 +48,31 @@ g.add_vertex(W.shape[0])
 # add source, sink
 s = g.vertex_index[g.add_vertex()]
 t = g.vertex_index[g.add_vertex()]
+upper_bound = 2*np.sum(W)
+source_edges = np.transpose(np.vstack((s*(np.ones(W.shape[0])), np.array(range(W.shape[0])), np.zeros(W.shape[0]))))
+sink_edges = np.transpose(np.vstack((np.array(range(W.shape[0])), t*(np.ones(W.shape[0])), np.zeros(W.shape[0]))))
+
 weight = g.new_edge_property("long double")
 eprops = [weight]
 g.add_edge_list(edges, eprops=eprops)
-upper_bound = 2*np.sum(W)
+g.add_edge_list(source_edges, eprops=eprops)
+g.add_edge_list(sink_edges, eprops=eprops)
+
 
 #first_vertex = np.random.randint(0, dists.shape[0])
 
-best_iterative = 10000000
-best_cut = 100000000
+best_iterative = np.inf
+best_cut = np.inf
 
-f=open("output.txt", "w+")
+f=open("outputOneGraph.txt", "w+")
 
-label_budget = 4
+label_budget = 3
 start_time = time.time()
+
+visitor = MinCut.VisitorExample(g)
+
+previous_L = None
+
 for positions in combinations((range(X.shape[0])), label_budget):
     #if i > 0:
      #   positions = [int(idx) for idx in list(np.genfromtxt('res/benchmark/SSL,set='+str(dataset)+',splits,labeled=100.tab')[i-1] - 1)]
@@ -83,11 +94,12 @@ for positions in combinations((range(X.shape[0])), label_budget):
     L[positions, 1] = y[positions]
     L = L.astype(int)
 
-
-    predictionIterative = LocalAndGlobalTest.predict(X,L,sigma,0.5,200)
-    iterative_time = time.time() - start_time
-    prediction_faster_min_cut = KCenterTest.faster_min_cut_strategy(g,s,t,upper_bound,weight,W, L)
-    cut_time = time.time() - iterative_time - start_time
+    local_start_time = time.time()
+    predictionIterative = LocalAndGlobalTest.predict(X,L,W,0.5,200)
+    iterative_time = time.time() - local_start_time
+    prediction_faster_min_cut = KCenterTest.faster_min_cut_strategy(g,s,t,upper_bound,weight,W, L, previous_L, visitor)
+    #g.shrink_to_fit()
+    cut_time = time.time() - iterative_time - local_start_time
 
 
     err_iterative = np.dot(predictionIterative-y,predictionIterative-y)
@@ -99,7 +111,7 @@ for positions in combinations((range(X.shape[0])), label_budget):
         best_cut = err_cut
 
     f.write(str(positions) + "," + str(err_iterative) + "," + str(err_cut) + "," + str(iterative_time) + "," + str(cut_time) + "\n")
-
+    previous_L = L
     #print(err_iterative)
     #print(err_cut)
     #print("==================================================")

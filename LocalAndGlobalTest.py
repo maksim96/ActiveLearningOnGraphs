@@ -7,15 +7,13 @@ import matplotlib.pyplot as plt
 #import sklearn.datasets
 import scipy.spatial
 
-def predict(X,Y, sigma, alpha, iterations):
-    W = np.exp(-(scipy.spatial.distance.cdist(X, X)) ** 2 / (2 * sigma ** 2))
+def predict(X,Y, W, alpha, iterations):
     np.fill_diagonal(W,0)
     D = np.sum(W, axis=0)
     Dhalfinverse = 1 / np.sqrt(D)
     Dhalfinverse = np.diag(Dhalfinverse)
     S = np.dot(np.dot(Dhalfinverse, W), Dhalfinverse)
 
-    alpha = 0.5
     F = np.zeros((X.shape[0], 2))
     for i in range(iterations):
         F = np.dot(alpha * S, F) + (1 - alpha) * Y
