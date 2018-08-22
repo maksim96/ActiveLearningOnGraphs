@@ -15,6 +15,7 @@ import KCenterTest
 import pandas as pd
 
 #read the data
+import PredictionStrategies
 
 X = np.genfromtxt('res/pulmon/features.csv',skip_header=1,dtype=object,delimiter=',')
 y = X[:,3]
@@ -95,9 +96,9 @@ for positions in combinations((range(X.shape[0])), label_budget):
     L = L.astype(int)
 
     local_start_time = time.time()
-    predictionIterative = LocalAndGlobalTest.predict(X,L,W,0.5,200)
+    predictionIterative = PredictionStrategies.predict(X, L, W, 0.5, 200)
     iterative_time = time.time() - local_start_time
-    prediction_faster_min_cut = KCenterTest.faster_min_cut_strategy(g,s,t,upper_bound,weight,W, L, previous_L, visitor)
+    prediction_faster_min_cut = PredictionStrategies.faster_min_cut_strategy(g, s, t, upper_bound, weight, W, L, previous_L, visitor)
     #g.shrink_to_fit()
     cut_time = time.time() - iterative_time - local_start_time
 

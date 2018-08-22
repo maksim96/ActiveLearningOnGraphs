@@ -15,10 +15,12 @@ import KCenterTest
 import pandas as pd
 import multiprocessing
 
+import PredictionStrategies
+
 
 def job(params):
     (X,W,label_budget,i) = params
-    f=open("parallel"+str(i)+".txt", "w+")
+    #f=open("parallel"+str(i)+".txt", "w+")
 
     g = gt.Graph()
 
@@ -47,6 +49,8 @@ def job(params):
     best_iterative = np.inf
     best_cut = np.inf
 
+    best_combination = None
+
     for positions in combinations(range(i+1, X.shape[0]), label_budget-1):
         #if i > 0:
          #   positions = [int(idx) for idx in list(np.genfromtxt('res/benchmark/SSL,set='+str(dataset)+',splits,labeled=100.tab')[i-1] - 1)]
@@ -70,9 +74,9 @@ def job(params):
         L = L.astype(int)
 
         local_start_time = time.time()
-        predictionIterative = LocalAndGlobalTest.predict(X,L,W,0.5,200)
+        predictionIterative = PredictionStrategies.predict(X, L, W, 0.5, 200)
         iterative_time = time.time() - local_start_time
-        prediction_faster_min_cut = KCenterTest.faster_min_cut_strategy(g,s,t,upper_bound,weight,W, L, previous_L, visitor)
+        prediction_faster_min_cut = PredictionStrategies.faster_min_cut_strategy(g, s, t, upper_bound, weight, W, L, previous_L, visitor)
         #g.shrink_to_fit()
         cut_time = time.time() - iterative_time - local_start_time
 
@@ -84,16 +88,17 @@ def job(params):
         err_cut = np.dot(prediction_faster_min_cut - y, prediction_faster_min_cut - y)
         if err_cut < best_cut:
             best_cut = err_cut
+            best_combination = positions
 
-        f.write(str(positions) + "," + str(err_iterative) + "," + str(err_cut) + "," + str(iterative_time) + "," + str(cut_time) + "\n")
+        #f.write(str(positions) + "," + str(err_iterative) + "," + str(err_cut) + "," + str(iterative_time) + "," + str(cut_time) + "\n")
         previous_L = L
         #print(err_iterative)
         #print(err_cut)
         #print("==================================================")
 
-    f.close()
+    #f.close()
     print(str(i) + " done!")
-    print((best_iterative, best_cut))
+    print((best_combination, best_iterative, best_cut))
     print(time.time() - start_time)
 
 #read the data
@@ -130,10 +135,9 @@ np.random.seed(0)
 
 
 
-label_budget = 4
+label_budget = 3
 
-pool = multiprocessing.Pool(8)
-
+pool = multiprocessing.Pool(4)
 params = [(X, W, label_budget, i) for i in range(X.shape[0] - label_budget + 1)]
 overall_time_start = time.time()
 pool.map(job, params)
