@@ -29,10 +29,10 @@ X = X.astype(float)
 X = (X - np.min(X, axis=0)) / (np.max(X, axis=0) - np.min(X, axis=0))
 
 #compute similarity graph
-dists = scipy.spatial.distance.cdist(X, X, 'sqeuclidean')
+dists = scipy.spatial.distance.cdist(X, X)
 dists_without_diagonal = np.reshape(dists[~np.eye(dists.shape[0],dtype=bool)],(dists.shape[0], dists.shape[1]-1))
-sigma = np.average(np.sort(dists_without_diagonal)[:,:5])/3
-W = np.exp(-(dists) / (2 * sigma ** 2))
+sigma = np.average(np.sort(dists_without_diagonal)[5])/3
+W = np.exp(-(dists)**2 / (2 * sigma ** 2))
 np.fill_diagonal(W, 0)
 
 np.nonzero(W.flatten())
@@ -96,7 +96,7 @@ for positions in combinations((range(X.shape[0])), label_budget):
     L = L.astype(int)
 
     local_start_time = time.time()
-    predictionIterative = PredictionStrategies.predict(X, L, W, 0.5, 200)
+    predictionIterative = PredictionStrategies.local_global_strategy(X, L, W, 0.5)
     iterative_time = time.time() - local_start_time
     prediction_faster_min_cut = PredictionStrategies.faster_min_cut_strategy(g, s, t, upper_bound, weight, W, L, previous_L, visitor)
     #g.shrink_to_fit()
@@ -113,6 +113,7 @@ for positions in combinations((range(X.shape[0])), label_budget):
 
     f.write(str(positions) + "," + str(err_iterative) + "," + str(err_cut) + "," + str(iterative_time) + "," + str(cut_time) + "\n")
     previous_L = L
+
     #print(err_iterative)
     #print(err_cut)
     #print("==================================================")

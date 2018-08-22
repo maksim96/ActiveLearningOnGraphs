@@ -99,7 +99,7 @@ def faster_min_cut_strategy(g2,s,t,upper_bound,weight,W, L, previous_L, visitor)
     return prediction
 
 
-def predict(X,Y, W, alpha, iterations):
+def local_global_strategy(X, Y, W, alpha, iterations=200, eps=0.000001):
     np.fill_diagonal(W,0)
     D = np.sum(W, axis=0)
     Dhalfinverse = 1 / np.sqrt(D)
@@ -107,7 +107,11 @@ def predict(X,Y, W, alpha, iterations):
     S = np.dot(np.dot(Dhalfinverse, W), Dhalfinverse)
 
     F = np.zeros((X.shape[0], 2))
-    for i in range(iterations):
+    oldF = np.ones((X.shape[0], 2))
+    oldF[:2, :2] = np.eye(2)
+    i = 0
+    while (np.abs(oldF - F) > eps).any() or i >= iterations:
+        oldF = F
         F = np.dot(alpha * S, F) + (1 - alpha) * Y
 
     result = np.zeros(X.shape[0])

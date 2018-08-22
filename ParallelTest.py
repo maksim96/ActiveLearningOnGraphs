@@ -74,7 +74,7 @@ def job(params):
         L = L.astype(int)
 
         local_start_time = time.time()
-        predictionIterative = PredictionStrategies.predict(X, L, W, 0.5, 200)
+        predictionIterative = PredictionStrategies.local_global_strategy(X, L, W, 0.5, 200)
         iterative_time = time.time() - local_start_time
         prediction_faster_min_cut = PredictionStrategies.faster_min_cut_strategy(g, s, t, upper_bound, weight, W, L, previous_L, visitor)
         #g.shrink_to_fit()

@@ -79,7 +79,7 @@ if __name__ == "__main__":
         L[positions, 1] = y[positions]
         L = L.astype(int)
 
-        predictionIterative = PredictionStrategies.predict(X, L,W, 0.5, 200)
+        predictionIterative = PredictionStrategies.local_global_strategy(X, L, W, 0.5, 200)
         #prediction_min_cut = mincut_strategy(W, L)
         prediction_faster_min_cut = PredictionStrategies.faster_min_cut_strategy(g2,s,t,upper_bound,weight,W, L, None, visitor)
         #prediction_random = np.random.randint(2, size=prediction_faster_min_cut.shape)
